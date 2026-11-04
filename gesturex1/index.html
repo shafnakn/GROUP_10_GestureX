@@ -1,0 +1,778 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GestureX</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<style>
+/* Layout: one centred phone-width column per screen, matching the four supplied screens;
+   the signed-in app widens to two columns on desktop (camera left, tools right). */
+:root{
+  --bg:#f6f5fd; --card:#ffffff; --ink:#1b1646; --muted:#5e5a80;
+  --brand:#5b3fe0; --brand-2:#7a62f0; --tint:#ece8ff; --line:#dedaf3;
+  --ok:#1faa63; --ok-bg:#e3f7ec; --warn:#c2410c; --warn-bg:#fdeee3;
+  --font:'Poppins',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --r-lg:22px; --r-md:14px;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-bottom,0px));}
+[hidden]{display:none!important}
+button,input,select{font:inherit;color:inherit}
+h1,h2,h3{margin:0;text-wrap:balance}
+.screen{margin:0 auto;max-width:440px;min-height:calc(100% - 0px);display:flex;flex-direction:column}
+.card{background:var(--card);border-radius:var(--r-lg);box-shadow:0 8px 30px rgba(70,50,170,.08);padding:28px 24px}
+.brand-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.logo{display:flex;align-items:center;gap:8px;font-weight:700;font-size:20px;letter-spacing:-.2px}
+.logo b{color:var(--brand)}
+.logo svg{width:34px;height:34px}
+.btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;border:0;border-radius:12px;padding:14px 18px;
+  background:var(--brand);color:#fff;font-weight:600;cursor:pointer;transition:background .15s,transform .05s}
+.btn:hover{background:#4d33cc}.btn:active{transform:translateY(1px)}
+.btn.ghost{background:#fff;color:var(--ink);border:1.5px solid var(--line)}
+.btn.ghost:hover{background:var(--tint)}
+.btn.danger{background:#d64545}.btn.danger:hover{background:#b93636}
+.btn.small{width:auto;padding:9px 14px;font-size:13px;border-radius:10px}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+:focus-visible{outline:3px solid #a999ff;outline-offset:2px}
+.link{background:none;border:0;padding:0;color:var(--brand);font-weight:500;cursor:pointer;text-decoration:none}
+.link:hover{text-decoration:underline}
+.center{text-align:center}.muted{color:var(--muted)}
+/* login */
+.hero-logo{display:flex;flex-direction:column;align-items:center;gap:6px;margin:6px 0 18px}
+.hero-logo svg{width:92px;height:92px}
+.hero-logo .name{font-size:34px;font-weight:700;letter-spacing:-.5px}
+.hero-logo .name b{color:var(--brand)}
+.tag{font-size:12px;color:var(--muted)}
+label{display:block;font-size:13px;font-weight:500;margin:14px 0 6px}
+.field{display:flex;align-items:center;gap:10px;border:1.5px solid var(--line);border-radius:12px;padding:0 14px;background:#fff}
+.field:focus-within{border-color:var(--brand)}
+.field input{flex:1;min-width:0;border:0;outline:0;padding:13px 0;background:transparent}
+.field svg{width:18px;height:18px;color:var(--muted);flex:none}
+.field button{background:none;border:0;cursor:pointer;color:var(--muted);padding:4px;display:flex}
+.row{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:14px 0 18px;font-size:13px}
+.check{display:flex;align-items:center;gap:8px;margin:0;font-weight:400}
+.or{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:13px;margin:16px 0}
+.or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
+.msg{font-size:13px;border-radius:10px;padding:10px 12px;margin-top:12px}
+.msg.err{background:var(--warn-bg);color:var(--warn)}
+.msg.ok{background:var(--ok-bg);color:#14744a}
+/* welcome */
+.welcome{display:flex;flex-direction:column;gap:18px;flex:1}
+.welcome h1{font-size:34px;line-height:1.15;text-align:center}
+.welcome h1 b{color:var(--brand)}
+.welcome .sub{color:var(--brand);font-weight:500;text-align:center;margin:0}
+.welcome p.copy{text-align:center;color:var(--muted);margin:0 8px}
+.illus{margin:auto;width:100%;max-width:300px}
+/* camera access */
+.perm{align-items:center;text-align:center;display:flex;flex-direction:column;gap:14px}
+.perm .disc{width:190px;height:190px;border-radius:50%;background:var(--tint);display:grid;place-items:center;margin:14px 0 6px}
+.perm .disc svg{width:110px;height:110px}
+.perm h2{font-size:26px}
+.privacy{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);justify-content:center}
+.privacy svg{width:14px;height:14px}
+/* app */
+.app{max-width:1060px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.status{display:inline-flex;align-items:center;gap:7px;border-radius:99px;padding:5px 12px;font-size:13px;font-weight:500;background:var(--ok-bg);color:#14744a}
+.status i{width:8px;height:8px;border-radius:50%;background:var(--ok)}
+.status.load{background:var(--tint);color:var(--brand)}.status.load i{background:var(--brand)}
+.status.live{background:#ffe9e9;color:#b42323}.status.live i{background:#d64545;animation:pulse 1.2s infinite}
+@keyframes pulse{50%{opacity:.35}}
+.icon-btn{width:40px;height:40px;border-radius:50%;border:0;background:var(--tint);color:var(--brand);display:grid;place-items:center;cursor:pointer}
+.icon-btn svg{width:20px;height:20px}
+.top-actions{display:flex;align-items:center;gap:10px}
+.tabs{display:flex;gap:6px;background:var(--tint);padding:5px;border-radius:14px;max-width:360px}
+.tabs button{flex:1;border:0;background:transparent;border-radius:10px;padding:9px 12px;font-weight:600;color:var(--muted);cursor:pointer}
+.tabs button[aria-selected=true]{background:#fff;color:var(--brand);box-shadow:0 2px 8px rgba(70,50,170,.12)}
+.grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:16px;align-items:start}
+@media(max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--card);border-radius:var(--r-lg);box-shadow:0 8px 30px rgba(70,50,170,.08);padding:16px;min-width:0}
+.panel h3{font-size:15px;margin-bottom:10px}
+.stage{position:relative;border-radius:18px;overflow:hidden;background:#2b2840;aspect-ratio:4/3;width:100%}
+.stage video,.stage canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.mirror{transform:scaleX(-1)}
+.corners i{position:absolute;width:44px;height:44px;border:4px solid var(--brand-2);pointer-events:none}
+.corners i:nth-child(1){left:7%;top:8%;border-right:0;border-bottom:0;border-top-left-radius:12px}
+.corners i:nth-child(2){right:7%;top:8%;border-left:0;border-bottom:0;border-top-right-radius:12px}
+.corners i:nth-child(3){left:7%;bottom:8%;border-right:0;border-top:0;border-bottom-left-radius:12px}
+.corners i:nth-child(4){right:7%;bottom:8%;border-left:0;border-top:0;border-bottom-right-radius:12px}
+.hint{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);background:#fff;color:var(--ink);border-radius:14px;
+  padding:9px 16px;display:flex;align-items:center;gap:10px;font-size:13px;box-shadow:0 6px 20px rgba(0,0,0,.2);max-width:90%}
+.hint b{display:block;font-size:14px}
+.live-sign{position:absolute;left:12px;top:12px;background:rgba(27,22,70,.82);color:#fff;border-radius:12px;padding:6px 12px;font-weight:600;font-size:14px;min-width:70px}
+.live-sign small{display:block;font-weight:400;font-size:11px;opacity:.75}
+.controls{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.sentence{min-height:92px;border:1.5px dashed var(--line);border-radius:14px;padding:12px 14px;font-size:20px;font-weight:600;line-height:1.35;word-break:break-word}
+.sentence.empty{color:#a29fc0;font-weight:400;font-size:14px}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.toggle{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;margin:10px 0 0}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{background:var(--tint);color:var(--brand);border-radius:99px;padding:4px 11px;font-size:12px;font-weight:500}
+.chip.custom{background:#fff3d6;color:#8a5a00}
+details{border-top:1px solid var(--line);margin-top:14px;padding-top:12px}
+summary{cursor:pointer;font-weight:600;font-size:14px}
+.inline{display:flex;gap:8px;margin-top:10px}
+.inline input{flex:1;min-width:0;border:1.5px solid var(--line);border-radius:10px;padding:9px 12px;background:#fff}
+.inline input:focus{border-color:var(--brand);outline:0}
+.settings{display:grid;gap:10px;margin-top:6px}
+.settings select{border:1.5px solid var(--line);border-radius:10px;padding:8px 10px;background:#fff;width:100%}
+.code{display:flex;align-items:center;gap:10px;background:var(--tint);border-radius:12px;padding:10px 12px;font-weight:600;letter-spacing:.5px;word-break:break-all}
+.code span{flex:1;min-width:0}
+.call-stage{position:relative;border-radius:18px;overflow:hidden;background:#1d1a33;aspect-ratio:4/3;width:100%}
+.call-stage video{width:100%;height:100%;object-fit:cover;display:block}
+.pip{position:absolute;right:10px;bottom:10px;width:30%;max-width:170px;aspect-ratio:4/3;border-radius:12px;overflow:hidden;border:2px solid #fff;background:#000;box-shadow:0 4px 14px rgba(0,0,0,.4)}
+.pip video{width:100%;height:100%;object-fit:cover}
+.waiting{position:absolute;inset:0;display:grid;place-items:center;color:#c9c2ff;text-align:center;padding:20px;font-size:14px}
+.captions{display:flex;flex-direction:column;gap:8px;max-height:230px;overflow:auto;margin-top:10px}
+.cap{border-radius:12px;padding:8px 12px;font-size:15px;max-width:88%}
+.cap.them{background:var(--tint);align-self:flex-start}
+.cap.me{background:var(--brand);color:#fff;align-self:flex-end}
+.cap small{display:block;font-size:11px;opacity:.7}
+.toast{position:fixed;left:50%;bottom:max(20px,env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:#fff;
+  padding:10px 16px;border-radius:12px;font-size:13px;z-index:20;max-width:90vw}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<!-- ============ 1. LOGIN ============ -->
+<main id="s-login" class="screen" hidden>
+  <div class="card">
+    <div class="hero-logo">
+      <svg viewBox="0 0 100 100" aria-hidden="true"><use href="#logo"/></svg>
+      <div class="name">Gesture<b>X</b></div>
+      <div class="tag">✦ Bridging Silence, Building Connections ✦</div>
+    </div>
+    <h1 class="center" id="auth-title" style="font-size:26px">Welcome Back!</h1>
+    <p class="center muted" id="auth-sub" style="margin:6px 0 4px">Sign in to continue your<br>gesture recognition journey.</p>
+    <form id="auth-form" novalidate>
+      <label for="email">Email Address</label>
+      <div class="field">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+        <input id="email" type="email" autocomplete="email" placeholder="Enter your email">
+      </div>
+      <label for="password">Password</label>
+      <div class="field">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+        <input id="password" type="password" autocomplete="current-password" placeholder="Enter your password">
+        <button type="button" id="pw-eye" aria-label="Show password"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+      </div>
+      <div class="row">
+        <label class="check"><input type="checkbox" id="remember"> Remember me</label>
+        <button type="button" class="link" id="forgot">Forgot Password?</button>
+      </div>
+      <button class="btn" id="auth-submit" type="submit">Login</button>
+    </form>
+    <div id="auth-msg" role="status"></div>
+    <div class="or">or</div>
+    <button class="btn ghost" id="google" type="button">
+      <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.2 5.3-4.6 6.9l7.4 5.7c4.3-4 6.9-9.9 6.9-17.1z"/><path fill="#FBBC05" d="M10.5 28.7A14.5 14.5 0 0 1 9.5 24c0-1.6.3-3.2.8-4.7l-7.9-6.1A24 24 0 0 0 0 24c0 3.9.9 7.5 2.6 10.8l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.4-5.7c-2.1 1.4-4.9 2.3-8.5 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>
+      Continue with Google
+    </button>
+    <p class="center" style="font-size:13px;margin:16px 0 0"><span id="swap-text">Don't have an account?</span> <button class="link" id="swap" type="button">Create New Account</button></p>
+  </div>
+</main>
+
+<!-- ============ 2. WELCOME ============ -->
+<main id="s-welcome" class="screen" hidden>
+  <div class="brand-row" style="padding:6px 4px 14px">
+    <div class="logo"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#logo"/></svg>Gesture<b>X</b></div>
+    <button class="icon-btn" id="logout" aria-label="Sign out" title="Sign out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg></button>
+  </div>
+  <div class="card welcome">
+    <h1>Welcome to<br><b>GestureX</b> 👋</h1>
+    <p class="sub">Bridging Silence, Building Connections.</p>
+    <p class="copy">Convert sign language into text and speech using real-time AI gesture recognition, and talk to anyone over video.</p>
+    <svg class="illus" viewBox="0 0 300 220" aria-hidden="true">
+      <ellipse cx="150" cy="120" rx="130" ry="95" fill="#ece8ff"/>
+      <rect x="38" y="30" width="62" height="40" rx="12" fill="#5b3fe0"/><path d="M60 70l-8 14 22-14z" fill="#5b3fe0"/>
+      <circle cx="54" cy="50" r="4" fill="#fff"/><circle cx="69" cy="50" r="4" fill="#fff"/><circle cx="84" cy="50" r="4" fill="#fff"/>
+      <path d="M95 215c0-48 24-78 55-78s55 30 55 78z" fill="#7a62f0"/>
+      <rect x="138" y="118" width="24" height="26" rx="8" fill="#f2b690"/>
+      <ellipse cx="150" cy="92" rx="30" ry="35" fill="#f7c9a8"/>
+      <path d="M118 90c-6-40 20-58 44-52 22 5 30 28 22 56-4-22-14-34-34-34s-26 14-32 30z" fill="#2b1b3a"/>
+      <circle cx="139" cy="95" r="3" fill="#2b1b3a"/><circle cx="161" cy="95" r="3" fill="#2b1b3a"/>
+      <path d="M142 108q8 7 16 0" stroke="#b8553f" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <circle cx="88" cy="150" r="14" fill="#f7c9a8"/><rect x="82" y="150" width="12" height="46" rx="6" fill="#f7c9a8" transform="rotate(14 88 150)"/>
+      <rect x="215" y="110" width="52" height="58" rx="12" fill="#fff" stroke="#7a62f0" stroke-width="2"/>
+      <path d="M233 150v-22m7 22v-28m7 28v-24m7 24v-14" stroke="#5b3fe0" stroke-width="5" stroke-linecap="round"/>
+    </svg>
+    <button class="btn" id="get-started">Get Started <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button>
+  </div>
+</main>
+
+<!-- ============ 3. CAMERA ACCESS ============ -->
+<main id="s-camera" class="screen" hidden>
+  <div class="brand-row" style="padding:6px 4px 14px">
+    <div class="logo"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#logo"/></svg>Gesture<b>X</b></div>
+  </div>
+  <div class="card perm">
+    <div class="disc">
+      <svg viewBox="0 0 64 64" fill="none"><rect x="6" y="16" width="44" height="32" rx="8" fill="#7a62f0"/><path d="M18 16l4-6h12l4 6" fill="#7a62f0"/><circle cx="28" cy="32" r="9" fill="#fff"/><circle cx="28" cy="32" r="5" fill="#7a62f0"/><path d="M50 36l12 8V20l-12 8z" fill="#5b3fe0"/></svg>
+    </div>
+    <h2>Camera &amp; Microphone Access Required</h2>
+    <p class="muted" style="margin:0 6px">GestureX needs your camera to recognize sign language gestures in real time, and your microphone so video calls carry sound.</p>
+    <button class="btn" id="allow-cam" style="margin-top:12px">Allow Camera Access</button>
+    <button class="btn ghost" id="not-now">Not Now</button>
+    <div id="cam-msg" class="msg err" hidden role="alert" style="width:100%"></div>
+    <div class="privacy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Your privacy is important to us. Video is processed on your device and never recorded or stored.</div>
+  </div>
+</main>
+
+<!-- ============ 4. APP ============ -->
+<main id="s-app" class="app" hidden>
+  <div class="brand-row">
+    <div class="logo"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#logo"/></svg>Gesture<b>X</b></div>
+    <div class="top-actions">
+      <span class="status load" id="status"><i></i><span id="status-text">Loading model…</span></span>
+      <button class="icon-btn" id="gear" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+    </div>
+  </div>
+
+  <div class="tabs" role="tablist">
+    <button role="tab" id="tab-rec" aria-selected="true" aria-controls="pane-rec">Recognize</button>
+    <button role="tab" id="tab-call" aria-selected="false" aria-controls="pane-call">Video Call</button>
+  </div>
+
+  <div class="panel" id="settings" hidden>
+    <h3>Voice settings</h3>
+    <div class="settings">
+      <div><label for="voice" style="margin-top:0">Voice</label><select id="voice"></select></div>
+      <label class="check" style="margin:0"><input type="checkbox" id="autospeak" checked> Speak each recognized sign automatically</label>
+      <label class="check" style="margin:0"><input type="checkbox" id="speak-remote" checked> Speak signs received from the other person on a call</label>
+    </div>
+  </div>
+
+  <!-- Recognize -->
+  <section id="pane-rec" class="grid" role="tabpanel">
+    <div class="panel">
+      <div class="stage">
+        <video id="cam" class="mirror" playsinline muted></video>
+        <canvas id="overlay" class="mirror"></canvas>
+        <div class="corners" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+        <div class="live-sign" id="live-sign" hidden><span id="live-label">–</span><small id="live-conf"></small></div>
+        <div class="hint"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#5b3fe0" stroke-width="1.8"><path d="M8 13V5a1.5 1.5 0 0 1 3 0v6m0-1V3.5a1.5 1.5 0 0 1 3 0V10m0-.5V5a1.5 1.5 0 0 1 3 0v8c0 4-2.5 7-6 7-2.5 0-4-1.5-5.5-4l-2-3a1.5 1.5 0 0 1 2.4-1.8L8 14"/></svg><div><b id="hint-title">Place your hand</b><span id="hint-sub">inside the frame</span></div></div>
+      </div>
+      <div class="controls">
+        <button class="btn" id="start-rec" disabled><svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><circle cx="12" cy="12" r="11" fill="#fff"/><path d="M10 8l6 4-6 4z" fill="#5b3fe0"/></svg><span id="start-label">Start Recognition</span></button>
+        <button class="link center" id="how">How it works?</button>
+        <div id="how-box" class="msg ok" hidden>Hold a sign steady for about half a second. GestureX reads 21 hand points from your camera on this device, matches them against its sign list, then adds the word to your sentence and can say it aloud.</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Your sentence</h3>
+      <div class="sentence empty" id="sentence" aria-live="polite">Signs you make will appear here.</div>
+      <div class="btn-row">
+        <button class="btn small" id="speak">🔊 Speak</button>
+        <button class="btn small ghost" id="undo">Undo word</button>
+        <button class="btn small ghost" id="clear">Clear</button>
+      </div>
+      <label class="check toggle"><input type="checkbox" id="send-call" checked> Send signs to the other person during a call</label>
+
+      <details open>
+        <summary>Signs it knows</summary>
+        <p class="muted" style="font-size:13px;margin:8px 0">Built-in signs work right away. Signs you teach, or load from a dataset, are matched first.</p>
+        <div class="chips" id="known"></div>
+      </details>
+      <details>
+        <summary>Teach a sign</summary>
+        <p class="muted" style="font-size:13px;margin:8px 0">Type the word, hold the sign in front of the camera and press Capture. Capture it 5 to 10 times with small variations.</p>
+        <div class="inline">
+          <input id="teach-word" placeholder="Word, e.g. Thank you" aria-label="Word for this sign">
+          <button class="btn small" id="teach-btn">Capture</button>
+        </div>
+        <div class="muted" style="font-size:12px;margin-top:8px" id="teach-info"></div>
+        <div class="btn-row"><button class="btn small ghost" id="teach-clear">Delete my signs</button></div>
+      </details>
+      <details>
+        <summary>Dataset</summary>
+        <p class="muted" style="font-size:13px;margin:8px 0" id="ds-info">Looking for model/landmarks.json…</p>
+      </details>
+    </div>
+  </section>
+
+  <!-- Call -->
+  <section id="pane-call" class="grid" role="tabpanel" hidden>
+    <div class="panel">
+      <div class="call-stage">
+        <video id="remote" playsinline autoplay></video>
+        <div class="waiting" id="call-wait">Not in a call.<br>Share your code or enter theirs.</div>
+        <button class="btn small" id="tap-play" hidden style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:auto">Tap to start video</button>
+        <div class="pip"><video id="local" class="mirror" playsinline muted autoplay></video></div>
+      </div>
+      <div class="muted" id="call-state" style="font-size:13px;margin-top:10px;min-height:20px" role="status" aria-live="polite"></div>
+      <div class="btn-row">
+        <button class="btn small ghost" id="mute">Mute mic</button>
+        <button class="btn small ghost" id="camoff">Camera off</button>
+        <button class="btn small danger" id="hangup" disabled>End call</button>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>Your call code</h3>
+      <div class="code"><span id="mycode">Connecting…</span><button class="btn small ghost" id="copy">Copy</button></div>
+      <label for="join">Call someone</label>
+      <div class="inline" style="margin-top:0">
+        <input id="join" placeholder="Their code, e.g. gx-ab12cd" autocomplete="off">
+        <button class="btn small" id="dial">Call</button>
+      </div>
+      <div id="incoming" class="msg ok" hidden>
+        <span id="incoming-text">Incoming call</span>
+        <div class="btn-row"><button class="btn small" id="accept">Answer</button><button class="btn small ghost" id="decline">Decline</button></div>
+      </div>
+      <h3 style="margin-top:18px">Signs during the call</h3>
+      <p class="muted" style="font-size:13px;margin:0">Switch to the Recognize tab or keep recognition running here. Their signs show up below and are spoken to you.</p>
+      <div class="btn-row"><button class="btn small" id="start-rec2" disabled>Start Recognition</button></div>
+      <div class="captions" id="captions" aria-live="polite"></div>
+    </div>
+  </section>
+</main>
+
+<div class="toast" id="toast" hidden role="status"></div>
+
+<!-- shared logo -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="logo" viewBox="0 0 100 100">
+  <path d="M30 78C14 70 10 48 22 30c8-12 22-14 30-8" fill="none" stroke="#5b3fe0" stroke-width="4" stroke-linecap="round"/>
+  <path d="M30 70V42m8 28V34m8 36V38m8 32V46" stroke="#5b3fe0" stroke-width="7" stroke-linecap="round"/>
+  <rect x="48" y="12" width="30" height="22" rx="8" fill="#7a62f0"/>
+  <circle cx="57" cy="23" r="2.4" fill="#fff"/><circle cx="63" cy="23" r="2.4" fill="#fff"/><circle cx="69" cy="23" r="2.4" fill="#fff"/>
+  <path d="M60 56l14 28M74 56L60 84" stroke="#5b3fe0" stroke-width="9" stroke-linecap="round"/>
+</symbol></defs></svg>
+
+<script type="module">
+/* ---------------------------------------------------------------
+   GestureX
+   - MediaPipe Hand Landmarker finds 21 hand points per frame (on device)
+   - A classifier turns the points into a sign: k-nearest-neighbours over a
+     dataset (model/landmarks.json + signs you teach), with built-in rules as fallback
+   - Recognized signs become text, speech (Web Speech API) and, in a call,
+     messages to the other person (PeerJS / WebRTC)
+---------------------------------------------------------------- */
+const $ = id => document.getElementById(id);
+const store = {
+  get(k, d){ try{ const v = localStorage.getItem(k); return v==null ? d : JSON.parse(v); }catch{ return d; } },
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} }
+};
+function toast(t, ms=2600){ const el=$('toast'); el.textContent=t; el.hidden=false; clearTimeout(toast.t); toast.t=setTimeout(()=>el.hidden=true, ms); }
+
+/* ---------- screens ---------- */
+const screens = ['login','welcome','camera','app'];
+function show(name){
+  for(const s of screens) $('s-'+s).hidden = s!==name;
+  window.scrollTo(0,0);
+}
+
+/* ---------- auth (stored in this browser only) ---------- */
+let signup = false;
+async function sha(t){ const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)); return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join(''); }
+function authMsg(t, kind='err'){ $('auth-msg').innerHTML = t ? `<div class="msg ${kind}">${t}</div>` : ''; }
+$('pw-eye').onclick = () => { const p=$('password'); p.type = p.type==='password' ? 'text' : 'password'; };
+$('swap').onclick = () => {
+  signup = !signup; authMsg('');
+  $('auth-title').textContent = signup ? 'Create your account' : 'Welcome Back!';
+  $('auth-sub').innerHTML = signup ? 'Join GestureX in a few seconds.' : 'Sign in to continue your<br>gesture recognition journey.';
+  $('auth-submit').textContent = signup ? 'Create Account' : 'Login';
+  $('swap').textContent = signup ? 'Login' : 'Create New Account';
+  $('swap-text').textContent = signup ? 'Already have an account?' : "Don't have an account?";
+  $('password').autocomplete = signup ? 'new-password' : 'current-password';
+};
+$('forgot').onclick = () => authMsg('Password reset needs a server. Accounts here live only in this browser, so create a new one to continue.');
+$('google').onclick = () => authMsg('Google sign-in needs a Google OAuth client ID. Add one in your own deployment, or continue with email for now.');
+$('auth-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const email = $('email').value.trim().toLowerCase(), pw = $('password').value;
+  if(!/^\S+@\S+\.\S+$/.test(email)) return authMsg('Enter a valid email address.');
+  if(pw.length < 6) return authMsg('Use a password with at least 6 characters.');
+  const users = store.get('gx_users', {});
+  const h = await sha(pw);
+  if(signup){
+    if(users[email]) return authMsg('That email already has an account. Log in instead.');
+    users[email] = h; store.set('gx_users', users);
+  } else {
+    if(!users[email]) return authMsg('No account found for that email. Create one first.');
+    if(users[email] !== h) return authMsg('Wrong password. Try again.');
+  }
+  store.set('gx_session', $('remember').checked ? email : null);
+  try{ sessionStorage.setItem('gx_session', JSON.stringify(email)); }catch{}
+  show('welcome');
+});
+$('logout').onclick = () => { store.set('gx_session', null); try{sessionStorage.removeItem('gx_session')}catch{}; stopAll(); show('login'); };
+$('get-started').onclick = async () => {
+  if(stream) return enterApp();
+  try{
+    const st = await navigator.permissions?.query({name:'camera'});
+    if(st && st.state==='granted') return allowCamera();
+  }catch{}
+  show('camera');
+};
+
+/* ---------- camera ---------- */
+let stream = null;
+async function allowCamera(){
+  $('cam-msg').hidden = true;
+  if(!navigator.mediaDevices?.getUserMedia){
+    $('cam-msg').textContent = 'This browser cannot open the camera. Use https:// or http://localhost, and a current Chrome, Edge, Safari or Firefox.';
+    $('cam-msg').hidden = false; return;
+  }
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({ video:{ width:{ideal:960}, height:{ideal:720}, facingMode:'user' }, audio:true });
+  }catch(err){
+    try{ stream = await navigator.mediaDevices.getUserMedia({ video:true, audio:false }); toast('Microphone not available. Calls will be video only.'); }
+    catch(e2){
+      $('cam-msg').textContent = e2.name==='NotAllowedError'
+        ? 'Camera access was blocked. Allow it from the lock icon in the address bar, then try again.'
+        : 'No camera found, or it is in use by another app.';
+      $('cam-msg').hidden = false; show('camera'); return;
+    }
+  }
+  enterApp();
+}
+$('allow-cam').onclick = allowCamera;
+$('not-now').onclick = () => show('welcome');
+
+async function enterApp(){
+  show('app');
+  $('cam').srcObject = stream; $('local').srcObject = stream;
+  await $('cam').play().catch(()=>{});
+  initModel(); initPeer(); loadVoices();
+}
+
+/* ---------- landmarks -> features ---------- */
+const FINGERS = { index:[8,6,5], middle:[12,10,9], ring:[16,14,13], pinky:[20,18,17] };
+const d2 = (a,b) => Math.hypot(a.x-b.x, a.y-b.y);
+function normalise(lm, handed){
+  // translate to wrist, mirror left hands, scale by largest 2D distance. Same recipe as build_dataset.py
+  const w = lm[0], m = handed==='Left' ? -1 : 1;
+  const pts = lm.map(p => [ (p.x-w.x)*m, p.y-w.y, p.z-w.z ]);
+  let s = 0; for(const p of pts) s = Math.max(s, Math.hypot(p[0],p[1]));
+  s = s || 1;
+  return pts.flatMap(p => [p[0]/s, p[1]/s, p[2]/s]);
+}
+function fingerState(lm){
+  const w = lm[0], size = d2(lm[0], lm[9]) || 1, st = {};
+  for(const [n,[t,p]] of Object.entries(FINGERS)) st[n] = d2(lm[t],w) > d2(lm[p],w)*1.08;
+  st.thumb = d2(lm[4],lm[17]) > d2(lm[3],lm[17])*1.04 && d2(lm[4],lm[5])/size > 0.55;
+  st.okPinch = d2(lm[4],lm[8])/size < 0.32;
+  return st;
+}
+const RULES = [
+  ['OK',        s => s.okPinch && s.middle && s.ring && s.pinky],
+  ['I love you',s => s.thumb && s.index && !s.middle && !s.ring && s.pinky],
+  ['Hello',     s => s.thumb && s.index && s.middle && s.ring && s.pinky],
+  ['Stop',      s => !s.thumb && s.index && s.middle && s.ring && s.pinky],
+  ['Water',     s => !s.thumb && s.index && s.middle && s.ring && !s.pinky],
+  ['Peace',     s => !s.thumb && s.index && s.middle && !s.ring && !s.pinky],
+  ['Good',      s => s.thumb && !s.index && !s.middle && !s.ring && !s.pinky],
+  ['Look',      s => !s.thumb && s.index && !s.middle && !s.ring && !s.pinky],
+  ['I',         s => !s.thumb && !s.index && !s.middle && !s.ring && s.pinky],
+  ['Yes',       s => !s.thumb && !s.index && !s.middle && !s.ring && !s.pinky],
+];
+function ruleSign(lm){ const s = fingerState(lm); for(const [n,f] of RULES) if(f(s)) return n; return null; }
+
+/* ---------- dataset (KNN) ---------- */
+let dataset = [];            // {l, v:[63]}
+let mine = store.get('gx_samples', []);
+const K = 5, MAX_DIST = 0.9;
+function knn(v){
+  const all = dataset.length || mine.length ? dataset.concat(mine) : [];
+  if(!all.length) return null;
+  const ds = [];
+  for(const s of all){ let t=0; for(let i=0;i<63;i++){ const d=s.v[i]-v[i]; t+=d*d; } ds.push([Math.sqrt(t), s.l]); }
+  ds.sort((a,b)=>a[0]-b[0]);
+  const near = ds.slice(0, K);
+  if(near[0][0] > MAX_DIST) return null;
+  const votes = {}; for(const [d,l] of near) votes[l] = (votes[l]||0) + 1/(d+0.05);
+  const tot = Object.values(votes).reduce((a,b)=>a+b,0);
+  const [lab, sc] = Object.entries(votes).sort((a,b)=>b[1]-a[1])[0];
+  return { label: lab, conf: sc/tot };
+}
+async function loadDataset(){
+  try{
+    const r = await fetch('model/landmarks.json', {cache:'no-cache'});
+    if(!r.ok) throw 0;
+    const j = await r.json();
+    dataset = j.samples.filter(s => s.v?.length===63);
+    $('ds-info').textContent = `Loaded ${dataset.length.toLocaleString()} samples for ${new Set(dataset.map(s=>s.l)).size} signs from model/landmarks.json.`;
+  }catch{
+    $('ds-info').innerHTML = 'No dataset file found, so the built-in signs and your own signs are used. To use an existing sign language dataset, run <code>python build_dataset.py</code> (see README) and reload.';
+  }
+  renderKnown();
+}
+function renderKnown(){
+  const base = RULES.map(r=>r[0]);
+  const ds = [...new Set(dataset.map(s=>s.l))];
+  const my = [...new Set(mine.map(s=>s.l))];
+  $('known').innerHTML = base.map(n=>`<span class="chip">${n}</span>`).join('')
+    + ds.map(n=>`<span class="chip">${esc(n)}</span>`).join('')
+    + my.map(n=>`<span class="chip custom">${esc(n)}</span>`).join('');
+  $('teach-info').textContent = mine.length ? `${mine.length} captured samples for ${my.length} sign(s).` : '';
+}
+const esc = s => String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---------- model ---------- */
+let landmarker = null, modelFailed = false;
+function setStatus(kind, text){ const s=$('status'); s.className='status '+(kind==='ready'?'':kind); $('status-text').textContent=text; }
+async function initModel(){
+  if(landmarker || modelFailed) return;
+  setStatus('load','Loading model…');
+  loadDataset();
+  try{
+    const { FilesetResolver, HandLandmarker } = await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs');
+    const fileset = await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm');
+    const opts = d => ({ baseOptions:{ modelAssetPath:'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task', delegate:d }, runningMode:'VIDEO', numHands:1, minHandDetectionConfidence:.55, minTrackingConfidence:.5 });
+    try{ landmarker = await HandLandmarker.createFromOptions(fileset, opts('GPU')); }
+    catch{ landmarker = await HandLandmarker.createFromOptions(fileset, opts('CPU')); }
+    setStatus('ready','Ready');
+    $('start-rec').disabled = false; $('start-rec2').disabled = false;
+  }catch(e){
+    console.error(e); modelFailed = true;
+    setStatus('live','Model failed to load');
+    toast('Could not load the hand model. Check your internet connection and reload.', 5000);
+  }
+}
+
+/* ---------- recognition loop ---------- */
+let running = false, lastTs = -1, raf = 0;
+let cand = null, candN = 0, committed = null, lastCommit = 0;
+const HOLD = 12, COOLDOWN = 1200;
+let words = [];
+const octx = $('overlay').getContext('2d');
+const BONES = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
+function setRunning(on){
+  running = on;
+  const label = on ? 'Stop Recognition' : 'Start Recognition';
+  $('start-label').textContent = label; $('start-rec2').textContent = label;
+  $('live-sign').hidden = !on;
+  if(on){ setStatus('live','Recognizing'); cand=null; candN=0; committed=null; raf=requestAnimationFrame(loop); }
+  else { cancelAnimationFrame(raf); octx.clearRect(0,0,$('overlay').width,$('overlay').height); setStatus('ready','Ready'); }
+}
+const toggleRec = () => { if(landmarker) setRunning(!running); };
+$('start-rec').onclick = toggleRec; $('start-rec2').onclick = toggleRec;
+$('how').onclick = () => { $('how-box').hidden = !$('how-box').hidden; };
+
+let lastLM = null, lastHand = 'Right';
+function loop(){
+  if(!running) return;
+  const v = $('cam');
+  if(v.readyState >= 2 && v.currentTime !== lastTs){
+    lastTs = v.currentTime;
+    const c = $('overlay');
+    if(c.width !== v.videoWidth){ c.width = v.videoWidth; c.height = v.videoHeight; }
+    let res; try{ res = landmarker.detectForVideo(v, performance.now()); }catch(e){ res = null; }
+    octx.clearRect(0,0,c.width,c.height);
+    if(res && res.landmarks.length){
+      const lm = res.landmarks[0]; lastLM = lm;
+      lastHand = res.handedness?.[0]?.[0]?.categoryName || 'Right';
+      draw(lm, c);
+      const vec = normalise(lm, lastHand);
+      let out = knn(vec);
+      if(!out){ const r = ruleSign(lm); if(r) out = { label:r, conf:.8 }; }
+      onSign(out);
+      $('hint-title').textContent = out ? out.label : 'Hand detected';
+      $('hint-sub').textContent = out ? 'hold steady' : 'sign not recognized';
+    } else { lastLM = null; onSign(null); $('hint-title').textContent='Place your hand'; $('hint-sub').textContent='inside the frame'; }
+  }
+  raf = requestAnimationFrame(loop);
+}
+function draw(lm, c){
+  octx.lineWidth = Math.max(3, c.width/220); octx.strokeStyle = 'rgba(122,98,240,.95)'; octx.fillStyle = '#fff';
+  for(const [a,b] of BONES){ octx.beginPath(); octx.moveTo(lm[a].x*c.width, lm[a].y*c.height); octx.lineTo(lm[b].x*c.width, lm[b].y*c.height); octx.stroke(); }
+  for(const p of lm){ octx.beginPath(); octx.arc(p.x*c.width, p.y*c.height, octx.lineWidth*0.9, 0, 7); octx.fill(); }
+}
+function onSign(out){
+  $('live-label').textContent = out ? out.label : '–';
+  $('live-conf').textContent = out ? Math.round(out.conf*100)+'% match' : 'no sign';
+  if(!out){ cand=null; candN=0; committed=null; return; }
+  if(out.label === cand) candN++; else { cand = out.label; candN = 1; }
+  if(candN >= HOLD && (out.label !== committed || performance.now()-lastCommit > COOLDOWN*2)){
+    if(performance.now()-lastCommit < COOLDOWN) return;
+    committed = out.label; lastCommit = performance.now();
+    commit(out.label);
+  }
+}
+function commit(word){
+  words.push(word); renderSentence();
+  if($('autospeak').checked) say(word);
+  sendSign(word);
+}
+function renderSentence(){
+  const el = $('sentence');
+  el.classList.toggle('empty', !words.length);
+  el.textContent = words.length ? words.join(' ') : 'Signs you make will appear here.';
+}
+$('speak').onclick = () => { if(words.length) say(words.join(' ')); else toast('Nothing to speak yet.'); };
+$('undo').onclick = () => { words.pop(); renderSentence(); };
+$('clear').onclick = () => { words = []; renderSentence(); };
+
+/* ---------- teach ---------- */
+$('teach-btn').onclick = () => {
+  const w = $('teach-word').value.trim();
+  if(!w) return toast('Type the word for this sign first.');
+  if(!landmarker) return toast('Model is still loading.');
+  if(!running) return toast('Start recognition so the camera can see your hand.');
+  if(!lastLM) return toast('No hand in view. Show your hand to the camera.');
+  mine.push({ l:w, v:normalise(lastLM, lastHand).map(n=>+n.toFixed(4)) });
+  store.set('gx_samples', mine); renderKnown();
+  toast(`Captured "${w}" (${mine.filter(s=>s.l===w).length})`);
+};
+$('teach-clear').onclick = () => { mine = []; store.set('gx_samples', mine); renderKnown(); toast('Your signs were deleted.'); };
+
+/* ---------- speech ---------- */
+let voices = [];
+function loadVoices(){
+  voices = speechSynthesis.getVoices();
+  const sel = $('voice'), saved = store.get('gx_voice', '');
+  sel.innerHTML = voices.map((v,i)=>`<option value="${i}">${esc(v.name)} (${v.lang})</option>`).join('') || '<option>Default voice</option>';
+  const idx = voices.findIndex(v=>v.name===saved); if(idx>=0) sel.value = idx;
+}
+if('speechSynthesis' in window) speechSynthesis.onvoiceschanged = loadVoices;
+$('voice').onchange = () => store.set('gx_voice', voices[$('voice').value]?.name || '');
+function say(t){
+  if(!('speechSynthesis' in window)) return toast('This browser has no speech output.');
+  const u = new SpeechSynthesisUtterance(t);
+  const v = voices[$('voice').value]; if(v) u.voice = v;
+  speechSynthesis.cancel(); speechSynthesis.speak(u);
+}
+$('gear').onclick = () => { $('settings').hidden = !$('settings').hidden; };
+
+/* ---------- tabs ---------- */
+function tab(which){
+  const rec = which==='rec';
+  $('pane-rec').hidden = !rec; $('pane-call').hidden = rec;
+  $('tab-rec').setAttribute('aria-selected', rec); $('tab-call').setAttribute('aria-selected', !rec);
+  if(rec && $('cam').srcObject !== stream) $('cam').srcObject = stream;
+}
+$('tab-rec').onclick = () => tab('rec'); $('tab-call').onclick = () => tab('call');
+
+/* ---------- video call (WebRTC via PeerJS) ---------- */
+let peer = null, call = null, conn = null, pendingCall = null;
+/* Relay (TURN) servers let a call work when the two devices are on different networks
+   (mobile data, office or college Wi-Fi). The shared one below is free but not guaranteed.
+   For reliable calls, make a free account at metered.ca or twilio.com, then replace the TURN entries. */
+const ICE_SERVERS = [
+  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun:stun1.l.google.com:19302' },
+  { urls: 'stun:global.stun.twilio.com:3478' },
+  { urls: ['turn:openrelay.metered.ca:80', 'turn:openrelay.metered.ca:443', 'turns:openrelay.metered.ca:443?transport=tcp'],
+    username: 'openrelayproject', credential: 'openrelayproject' }
+];
+function callState(t){ $('call-state').textContent = t; }
+function randomCode(){ const a='abcdefghjkmnpqrstuvwxyz23456789'; let s='gx-'; for(let i=0;i<6;i++) s+=a[Math.floor(Math.random()*a.length)]; return s; }
+function initPeer(){
+  if(peer || typeof Peer==='undefined'){ if(typeof Peer==='undefined') $('mycode').textContent='Call service unavailable'; return; }
+  const code = store.get('gx_code', null) || randomCode(); store.set('gx_code', code);
+  peer = new Peer(code, { config: { iceServers: ICE_SERVERS, iceCandidatePoolSize: 4 } });
+  peer.on('open', id => { $('mycode').textContent = id; });
+  peer.on('error', err => {
+    if(err.type==='unavailable-id'){ store.set('gx_code', null); peer.destroy(); peer=null; initPeer(); return; }
+    if(err.type==='peer-unavailable') toast('That code is not online. Check it and try again.', 3500);
+    else toast('Call error: '+err.type, 3500);
+  });
+  peer.on('connection', c => attachConn(c));
+  peer.on('call', c => {
+    if(call){ c.close(); return; }
+    pendingCall = c;
+    $('incoming-text').textContent = `Incoming call from ${c.peer}`;
+    $('incoming').hidden = false; tab('call');
+  });
+}
+function attachConn(c){
+  conn = c;
+  c.on('data', d => { if(d && d.type==='sign') receiveSign(d.text); });
+  c.on('close', () => { if(conn===c) conn=null; });
+}
+function watchIce(c){
+  // PeerJS creates the RTCPeerConnection a moment after the call object, so poll briefly for it
+  let tries = 0;
+  const t = setInterval(() => {
+    const pc = c.peerConnection;
+    if(pc){
+      clearInterval(t);
+      const upd = () => {
+        const s = pc.iceConnectionState;
+        if(s==='checking') callState('Connecting…');
+        else if(s==='connected' || s==='completed') callState('Connected');
+        else if(s==='disconnected') callState('Connection unstable…');
+        else if(s==='failed'){
+          callState('Could not connect. Your networks are blocking a direct link. Try both devices on the same Wi-Fi, or add a TURN server (see README).');
+          $('call-wait').hidden = false; $('call-wait').textContent = 'Connection failed';
+        }
+      };
+      pc.addEventListener('iceconnectionstatechange', upd); upd();
+    } else if(++tries > 40) clearInterval(t);
+  }, 250);
+}
+function attachCall(c){
+  call = c; callState('Connecting…'); watchIce(c);
+  c.on('stream', rs => {
+    const v = $('remote'); v.srcObject = rs; v.muted = false;
+    $('call-wait').hidden = true; $('hangup').disabled = false;
+    setStatus(running?'live':'ready', running?'Recognizing':'In call');
+    v.play().catch(() => { $('tap-play').hidden = false; });
+  });
+  c.on('close', endCall); c.on('error', e => { callState('Call error: '+(e?.type||e)); endCall(); });
+}
+$('tap-play').onclick = () => { $('remote').play().then(()=>{ $('tap-play').hidden = true; }).catch(()=>{}); };
+$('dial').onclick = () => {
+  const id = $('join').value.trim().toLowerCase();
+  if(!peer?.open) return toast('Still connecting to the call service.');
+  if(!id) return toast('Enter the code of the person you want to call.');
+  if(id===peer.id) return toast('That is your own code.');
+  if(call) return toast('You are already in a call.');
+  attachCall(peer.call(id, stream));
+  attachConn(peer.connect(id));
+  $('call-wait').textContent = 'Calling…'; $('call-wait').hidden = false; $('hangup').disabled = false;
+};
+$('accept').onclick = () => {
+  if(!pendingCall) return;
+  pendingCall.answer(stream); attachCall(pendingCall); pendingCall = null; $('incoming').hidden = true;
+};
+$('decline').onclick = () => { pendingCall?.close(); pendingCall = null; $('incoming').hidden = true; };
+function endCall(){
+  try{ call?.close(); }catch{} try{ conn?.close(); }catch{}
+  call = null; conn = null; $('remote').srcObject = null; $('tap-play').hidden = true; callState('');
+  $('call-wait').innerHTML = 'Not in a call.<br>Share your code or enter theirs.'; $('call-wait').hidden = false; $('hangup').disabled = true;
+}
+$('hangup').onclick = endCall;
+$('copy').onclick = async () => {
+  const t = $('mycode').textContent;
+  try{ await navigator.clipboard.writeText(t); toast('Code copied'); }catch{ toast('Select the code and copy it.'); }
+};
+$('mute').onclick = () => { const t = stream?.getAudioTracks()[0]; if(!t) return toast('No microphone.'); t.enabled = !t.enabled; $('mute').textContent = t.enabled ? 'Mute mic' : 'Unmute mic'; };
+$('camoff').onclick = () => { const t = stream?.getVideoTracks()[0]; if(!t) return; t.enabled = !t.enabled; $('camoff').textContent = t.enabled ? 'Camera off' : 'Camera on'; };
+
+function addCap(who, text){
+  const d = document.createElement('div'); d.className = 'cap '+(who==='me'?'me':'them');
+  d.innerHTML = `<small>${who==='me'?'You signed':'They signed'}</small>${esc(text)}`;
+  const box = $('captions'); box.appendChild(d); box.scrollTop = box.scrollHeight;
+}
+function sendSign(text){
+  if(conn?.open && $('send-call').checked){ conn.send({type:'sign', text}); addCap('me', text); }
+}
+function receiveSign(text){
+  addCap('them', String(text).slice(0,60));
+  if($('speak-remote').checked) say(String(text).slice(0,60));
+}
+
+function stopAll(){ setRunning(false); endCall(); try{peer?.destroy()}catch{} peer=null; stream?.getTracks().forEach(t=>t.stop()); stream=null; }
+
+/* ---------- boot ---------- */
+(function boot(){
+  let s = store.get('gx_session', null);
+  if(!s){ try{ s = JSON.parse(sessionStorage.getItem('gx_session')); }catch{} }
+  show(s ? 'welcome' : 'login');
+  renderKnown();
+})();
+window.addEventListener('beforeunload', () => { try{peer?.destroy()}catch{} });
+</script>
+</body>
+</html>
